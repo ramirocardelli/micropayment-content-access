@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+  import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import "./App.css";
 import { WalletClient, PublicKey, Hash } from "@bsv/sdk";
@@ -10,7 +10,7 @@ const WALLET_SESSION_KEY = 'bsv_wallet_session';
 const SESSION_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
 
 interface WalletSession {
-  walletAddress: string;
+  counterparty: string;
   timestamp: number;
 }
 
@@ -75,7 +75,7 @@ function base58Encode(bytes: Uint8Array): string {
 function App() {
   const [isWalletConnected, setIsWalletConnected] = useState(false);
   const [wallet, setWallet] = useState<WalletClient | null>(null);
-  const [walletAddress, setWalletAddress] = useState<string>("");
+  const [counterparty, setCounterparty] = useState<string>("");
   const [isRestoringSession, setIsRestoringSession] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -107,15 +107,12 @@ function App() {
           const result = await walletClient.getPublicKey({ identityKey: true });
           const publicKey = result.publicKey;
 
-          // Convert public key to Bitcoin address
-          const address = publicKeyToAddress(publicKey);
           console.log('Public Key:', publicKey);
-          console.log('Bitcoin Address:', address);
 
           // Verify the stored address matches
-          if (publicKey === session.walletAddress) {
+          if (publicKey === session.counterparty) {
             setWallet(walletClient);
-            setWalletAddress(address); // Use Bitcoin address instead of public key
+            setCounterparty(publicKey);
             setIsWalletConnected(true);
           } else {
             localStorage.removeItem(WALLET_SESSION_KEY);
@@ -146,17 +143,15 @@ function App() {
         const publicKey = result.publicKey;
 
         // Convert public key to Bitcoin address
-        const address = publicKeyToAddress(publicKey);
         console.log('Public Key:', publicKey);
-        console.log('Bitcoin Address:', address);
 
         setWallet(walletClient);
-        setWalletAddress(address); // Use Bitcoin address instead of public key
+        setCounterparty(publicKey);
         setIsWalletConnected(true);
 
         // Save session to localStorage
         const session: WalletSession = {
-          walletAddress: publicKey, // Store public key for session verification
+          counterparty: publicKey, // Store public key for session verification
           timestamp: Date.now()
         };
         localStorage.setItem(WALLET_SESSION_KEY, JSON.stringify(session));
@@ -178,7 +173,7 @@ function App() {
 
   const handleDisconnectWallet = () => {
     setWallet(null);
-    setWalletAddress("");
+    setCounterparty("");
     setIsWalletConnected(false);
     localStorage.removeItem(WALLET_SESSION_KEY);
   };
@@ -200,7 +195,7 @@ function App() {
               <HomePage
                 isWalletConnected={isWalletConnected}
                 wallet={wallet}
-                walletAddress={walletAddress}
+                counterparty={counterparty}
                 onConnectWallet={handleConnectWallet}
                 isRestoringSession={isRestoringSession}
                 isLoading={isLoading}
@@ -213,7 +208,7 @@ function App() {
               <ArticleDetailPage
                 wallet={wallet}
                 isWalletConnected={isWalletConnected}
-                walletAddress={walletAddress}
+                counterparty={counterparty}
               />
             }
           />

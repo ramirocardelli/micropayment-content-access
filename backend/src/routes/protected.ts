@@ -3,11 +3,12 @@ import { createAuthMiddleware } from '@bsv/auth-express-middleware';
 import { WalletClient } from '@bsv/sdk';
 import Article from '../models/Article';
 import Purchase from '../models/Purchase';
+import { makeWallet } from '../wallet';
 
 const router = express.Router();
 
 // Create a wallet client instance for the auth middleware
-const wallet = new WalletClient();
+const wallet = makeWallet(process.env.PRIVATE_KEY!);
 
 // BRC-104 Authentication Middleware
 // This verifies the user's identity using their wallet signature (BRC-77/78)
@@ -28,7 +29,7 @@ router.get('/articles', async (req: Request, res: Response) => {
       wordCount: article.wordCount,
       price: article.price,
       preview: article.preview,
-      authorPaymentAddress: article.authorPaymentAddress,
+      authorIdentityKey: article.authorIdentityKey,
       isPurchased: false, // Will be determined on frontend based on wallet
     }));
     
@@ -58,7 +59,7 @@ router.get('/articles/:id', async (req: Request, res: Response) => {
       wordCount: article.wordCount,
       price: article.price,
       preview: article.preview,
-      authorPaymentAddress: article.authorPaymentAddress,
+      authorIdentityKey: article.authorIdentityKey,
     });
   } catch (error) {
     console.error('Error fetching article:', error);
@@ -129,16 +130,16 @@ router.post('/articles/:id/verify-purchase', async (req: Request, res: Response)
   }
 });
 
-// GET /api/protected/articles/purchases/:walletAddress - Get user's purchases (public for convenience)
-router.get('/articles/purchases/:walletAddress', async (req: Request, res: Response) => {
+// GET /api/protected/articles/purchases/:counterparty - Get user's purchases (public for convenience)
+router.get('/articles/purchases/:counterparty', async (req: Request, res: Response) => {
   try {
-    const { walletAddress } = req.params;
+    const { counterparty } = req.params;
     
-    console.log(`📋 Fetching purchases for wallet: ${walletAddress}`);
+    console.log(`📋 Fetching purchases for wallet: ${counterparty}`);
     
-    const purchases = await Purchase.find({ walletAddress }).sort({ purchasedAt: -1 });
+    const purchases = await Purchase.find({ counterparty }).sort({ purchasedAt: -1 });
     
-    console.log(`✅ Found ${purchases.length} purchases for ${walletAddress}`);
+    console.log(`✅ Found ${purchases.length} purchases for ${counterparty}`);
     
     // DEBUG: Show all purchases if none found
     if (purchases.length === 0) {
@@ -146,7 +147,7 @@ router.get('/articles/purchases/:walletAddress', async (req: Request, res: Respo
       console.log(`🔍 DEBUG: First 10 purchases in database:`, 
         allPurchases.map(p => ({ 
           articleId: p.articleId, 
-          walletAddress: p.walletAddress,
+          counterparty: p.counterparty,
           txid: p.txid 
         }))
       );
@@ -192,7 +193,7 @@ router.get(
       // Note: We check against the identity key used in authFetch
       const purchase = await Purchase.findOne({
         articleId: id,
-        walletAddress: userIdentityKey,
+        counterparty: userIdentityKey,
         verified: true,
       });
 
@@ -249,7 +250,7 @@ router.post('/articles/:id/content', async (req: Request, res: Response) => {
     // Verify that the user has purchased this article
     const purchase = await Purchase.findOne({
       articleId: id,
-      walletAddress: walletAddress,
+      counterparty: walletAddress,
       verified: true
     });
     
@@ -296,7 +297,7 @@ router.get('/articles/:id/info', async (req: Request, res: Response) => {
       title: article.title,
       author: article.author,
       price: article.price,
-      paymentAddress: article.authorPaymentAddress,
+      authorIdentityKey: article.authorIdentityKey,
       brc104: {
         enabled: true,
         endpoint: `/api/protected/articles/${id}/content`,

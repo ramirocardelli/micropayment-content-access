@@ -4,7 +4,7 @@ export interface IArticle extends Document {
   id: string;
   title: string;
   author: string;
-  authorPaymentAddress: string; // BSV address where writer receives payments
+  authorIdentityKey: string;
   subject: string;
   wordCount: number;
   price: number; // in satoshis
@@ -31,7 +31,7 @@ const ArticleSchema: Schema = new Schema(
       required: true,
       trim: true,
     },
-    authorPaymentAddress: {
+    authorIdentityKey: {
       type: String,
       required: true,
       trim: true,

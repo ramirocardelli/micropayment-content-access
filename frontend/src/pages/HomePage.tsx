@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Article } from "../types/article";
 import ArticleModal from "../components/ArticleModal";
-import type { WalletClient } from "@bsv/sdk";
+import { WalletClient, P2PKH } from "@bsv/sdk";
 import ArticleCard from "../components/ArticleCard";
 import ConnectPrompt from "../components/ConnectPrompt";
 
 interface HomePageProps {
   isWalletConnected: boolean;
   wallet: WalletClient | null;
-  walletAddress: string;
+  counterparty: string;
   onConnectWallet: () => Promise<void>;
   isRestoringSession: boolean;
   isLoading: boolean;
@@ -18,7 +18,7 @@ interface HomePageProps {
 function HomePage({ 
   isWalletConnected, 
   wallet, 
-  walletAddress, 
+  counterparty, 
   onConnectWallet, 
   isRestoringSession,
   isLoading 
@@ -60,13 +60,13 @@ function HomePage({
 
   // Load user purchases when wallet connects
   useEffect(() => {
-    if (!isWalletConnected || !walletAddress) return;
+    if (!isWalletConnected || !counterparty) return;
 
     const fetchPurchases = async () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
         const purchasesRes = await fetch(
-          `${apiUrl}/api/protected/articles/purchases/${walletAddress}`
+          `${apiUrl}/api/protected/articles/purchases/${counterparty}`
         );
         if (purchasesRes.ok) {
           const purchases = await purchasesRes.json();
@@ -91,7 +91,7 @@ function HomePage({
     };
 
     fetchPurchases();
-  }, [isWalletConnected, walletAddress]);
+  }, [isWalletConnected, counterparty]);
 
   const handleUnlockArticle = async (articleId: string) => {
     if (!wallet) {
@@ -134,10 +134,7 @@ function HomePage({
         .padStart(2, "0")}${priceHex}`;
 
       // Create P2PKH locking script for writer's address
-      // This is a simplified approach - in production you'd use proper script builder
-      // For now, we'll let the wallet handle the payment to the address
-      const { P2PKH } = await import("@bsv/sdk");
-      const paymentScript = new P2PKH().lock(article.authorPaymentAddress);
+      const paymentScript = new P2PKH().lock(article.authorIdentityKey);
 
       console.log(`Sending payment to writer at: ${article.authorPaymentAddress}`);
 
@@ -180,7 +177,7 @@ function HomePage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           txid: txid,
-          walletAddress: walletAddress,
+          counterparty,
           satoshisPaid: article.price, // Send the amount that was paid
         }),
       });

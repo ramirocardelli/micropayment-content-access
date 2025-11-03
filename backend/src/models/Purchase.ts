@@ -1,8 +1,13 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { WalletProtocol } from '@bsv/sdk';
+import { brc29ProtocolID } from '@bsv/wallet-toolbox';
+
+export const protocolID: WalletProtocol = brc29ProtocolID
 
 export interface IPurchase extends Document {
   articleId: string;
-  walletAddress: string;
+  counterparty: string,
+  keyID: string,
   txid: string;
   satoshisPaid: number;
   purchasedAt: Date;
@@ -16,10 +21,13 @@ const PurchaseSchema: Schema = new Schema(
       required: true,
       ref: 'Article',
     },
-    walletAddress: {
+    counterparty: {
       type: String,
       required: true,
-      trim: true,
+    },
+    keyID: {
+      type: String,
+      required: true,
     },
     txid: {
       type: String,
@@ -46,7 +54,7 @@ const PurchaseSchema: Schema = new Schema(
 );
 
 // Index for fast lookup
-PurchaseSchema.index({ walletAddress: 1, articleId: 1 });
+PurchaseSchema.index({ articleId: 1, counterparty: 1 });
 PurchaseSchema.index({ txid: 1 }, { unique: true });
 
 export default mongoose.model<IPurchase>('Purchase', PurchaseSchema);

@@ -7,11 +7,11 @@ import '../App.css';
 
 interface ArticleDetailPageProps {
   wallet: WalletWithAuthFetch | null;
-  walletAddress: string;
+  counterparty: string;
   isWalletConnected: boolean;
 }
 
-function ArticleDetailPage({ wallet, walletAddress, isWalletConnected }: ArticleDetailPageProps) {
+function ArticleDetailPage({ wallet, counterparty, isWalletConnected }: ArticleDetailPageProps) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [article, setArticle] = useState<Article | null>(null);
@@ -30,7 +30,7 @@ function ArticleDetailPage({ wallet, walletAddress, isWalletConnected }: Article
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
         
         // Check if user is connected first
-        if (!isWalletConnected || !walletAddress || !wallet) {
+        if (!isWalletConnected || !counterparty || !wallet) {
           navigate('/');
           return;
         }
@@ -41,7 +41,7 @@ function ArticleDetailPage({ wallet, walletAddress, isWalletConnected }: Article
         
         const articleRes = await authFetch(wallet, url, {
           method: 'GET',
-        }, walletAddress); // Pass walletAddress for fallback
+        }, counterparty); // Pass counterparty for fallback
 
         if (!articleRes.ok) {
           if (articleRes.status === 403) {
@@ -63,7 +63,7 @@ function ArticleDetailPage({ wallet, walletAddress, isWalletConnected }: Article
     };
 
     fetchArticle();
-  }, [id, wallet, walletAddress, isWalletConnected, navigate]);
+  }, [id, wallet, counterparty, isWalletConnected, navigate]);
 
   if (loading) {
     return (
