@@ -28,7 +28,8 @@ router.get('/articles', async (req: Request, res: Response) => {
       wordCount: article.wordCount,
       price: article.price,
       preview: article.preview,
-      authorPaymentAddress: article.authorPaymentAddress,
+      authorIdentityKey: article.authorIdentityKey,
+      authorAddress: article.authorAddress,
       isPurchased: false, // Will be determined on frontend based on wallet
     }));
     
@@ -58,7 +59,8 @@ router.get('/articles/:id', async (req: Request, res: Response) => {
       wordCount: article.wordCount,
       price: article.price,
       preview: article.preview,
-      authorPaymentAddress: article.authorPaymentAddress,
+      authorIdentityKey: article.authorIdentityKey,
+      authorAddress: article.authorAddress,
     });
   } catch (error) {
     console.error('Error fetching article:', error);
@@ -296,7 +298,8 @@ router.get('/articles/:id/info', async (req: Request, res: Response) => {
       title: article.title,
       author: article.author,
       price: article.price,
-      paymentAddress: article.authorPaymentAddress,
+      authorIdentityKey: article.authorIdentityKey,
+      authorAddress: article.authorAddress,
       brc104: {
         enabled: true,
         endpoint: `/api/protected/articles/${id}/content`,

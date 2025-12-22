@@ -2,7 +2,8 @@ export interface Article {
   id: string;
   title: string;
   author: string;
-  authorPaymentAddress: string; // BSV address where writer receives payment
+  authorIdentityKey: string;
+  authorAddress: string;
   subject: string;
   wordCount: number;
   price: number; // in satoshis

@@ -4,7 +4,8 @@ export interface IArticle extends Document {
   id: string;
   title: string;
   author: string;
-  authorPaymentAddress: string; // BSV address where writer receives payments
+  authorIdentityKey: string; // Writer's BRC-29 identity public key (deprecated - use authorAddress)
+  authorAddress: string; // Writer's BSV address for receiving payments
   subject: string;
   wordCount: number;
   price: number; // in satoshis
@@ -31,9 +32,14 @@ const ArticleSchema: Schema = new Schema(
       required: true,
       trim: true,
     },
-    authorPaymentAddress: {
+    authorIdentityKey: {
       type: String,
-      required: true,
+      required: false, // Making optional for backwards compatibility
+      trim: true,
+    },
+    authorAddress: {
+      type: String,
+      required: false, // Will become required once migration complete
       trim: true,
     },
     subject: {

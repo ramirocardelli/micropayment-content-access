@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import "./App.css";
-import { WalletClient, PublicKey, Hash } from "@bsv/sdk";
+import { WalletClient, PublicKey } from "@bsv/sdk";
 import HomePage from "./pages/HomePage";
 import ArticleDetailPage from "./pages/ArticleDetailPage";
 import Header from "./components/Header";
@@ -12,64 +12,6 @@ const SESSION_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
 interface WalletSession {
   walletAddress: string;
   timestamp: number;
-}
-
-// Helper function to convert public key to Bitcoin address
-function publicKeyToAddress(publicKeyHex: string): string {
-  try {
-    const pubKey = PublicKey.fromString(publicKeyHex);
-    const pubKeyHash = Hash.hash160(pubKey.toDER());
-    
-    // Add version byte (0x00 for mainnet) and compute checksum
-    const versionByte = new Uint8Array([0x00]);
-    const payload = new Uint8Array(versionByte.length + pubKeyHash.length);
-    payload.set(versionByte);
-    payload.set(pubKeyHash, versionByte.length);
-    
-    // Double SHA256 for checksum
-    const hash1 = Hash.sha256(Array.from(payload));
-    const hash2 = Hash.sha256(Array.from(hash1));
-    const checksum = hash2.slice(0, 4);
-    
-    // Concatenate payload and checksum
-    const addressBytes = new Uint8Array(payload.length + checksum.length);
-    addressBytes.set(payload);
-    addressBytes.set(checksum, payload.length);
-    
-    // Base58 encode
-    return base58Encode(addressBytes);
-  } catch (error) {
-    console.error('Failed to convert public key to address:', error);
-    return publicKeyHex; // Fallback to public key
-  }
-}
-
-// Base58 encoding (Bitcoin alphabet)
-function base58Encode(bytes: Uint8Array): string {
-  const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-  
-  // Count leading zeros
-  let zeros = 0;
-  for (let i = 0; i < bytes.length && bytes[i] === 0; i++) {
-    zeros++;
-  }
-  
-  // Convert bytes to big integer
-  let num = BigInt(0);
-  for (const byte of bytes) {
-    num = num * BigInt(256) + BigInt(byte);
-  }
-  
-  // Convert to base58
-  let encoded = '';
-  while (num > 0) {
-    const remainder = Number(num % BigInt(58));
-    encoded = ALPHABET[remainder] + encoded;
-    num = num / BigInt(58);
-  }
-  
-  // Add leading '1's for leading zeros
-  return '1'.repeat(zeros) + encoded;
 }
 
 function App() {
@@ -108,7 +50,7 @@ function App() {
           const publicKey = result.publicKey;
 
           // Convert public key to Bitcoin address
-          const address = publicKeyToAddress(publicKey);
+          const address = PublicKey.fromString(publicKey).toAddress();
           console.log('Public Key:', publicKey);
           console.log('Bitcoin Address:', address);
 
@@ -146,7 +88,7 @@ function App() {
         const publicKey = result.publicKey;
 
         // Convert public key to Bitcoin address
-        const address = publicKeyToAddress(publicKey);
+        const address = PublicKey.fromString(publicKey).toAddress();
         console.log('Public Key:', publicKey);
         console.log('Bitcoin Address:', address);
 

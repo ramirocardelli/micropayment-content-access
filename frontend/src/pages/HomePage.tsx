@@ -5,6 +5,7 @@ import ArticleModal from "../components/ArticleModal";
 import type { WalletClient } from "@bsv/sdk";
 import ArticleCard from "../components/ArticleCard";
 import ConnectPrompt from "../components/ConnectPrompt";
+import { createContentPayment } from "../utils/payments";
 
 interface HomePageProps {
   isWalletConnected: boolean;
@@ -110,55 +111,24 @@ function HomePage({
 
     try {
       console.log(`Unlocking article ${articleId} for ${article.price} satoshis...`);
-
-      // Helper function to convert string to hex (browser-safe)
-      const stringToHex = (str: string): string => {
-        let hex = "";
-        for (let i = 0; i < str.length; i++) {
-          hex += str.charCodeAt(i).toString(16).padStart(2, "0");
-        }
-        return hex;
-      };
-
-      // Create OP_RETURN data with article metadata for tracking
-      const protocol = stringToHex("article-unlock");
-      const articleIdHex = stringToHex(articleId);
-      const titleHex = stringToHex(article.title);
-      const priceHex = stringToHex(article.price.toString());
-
-      // Build OP_RETURN script (OP_FALSE OP_RETURN <data>)
-      const opReturnScript = `006a04${protocol}02${articleIdHex}${titleHex.length
-        .toString(16)
-        .padStart(2, "0")}${titleHex}${priceHex.length
-        .toString(16)
-        .padStart(2, "0")}${priceHex}`;
-
-      // Create P2PKH locking script for writer's address
-      // This is a simplified approach - in production you'd use proper script builder
-      // For now, we'll let the wallet handle the payment to the address
-      const { P2PKH } = await import("@bsv/sdk");
-      const paymentScript = new P2PKH().lock(article.authorPaymentAddress);
-
-      console.log(`Sending payment to writer at: ${article.authorPaymentAddress}`);
-
-      // Create and broadcast transaction with two outputs:
-      // 1. Payment to writer's address (P2PKH)
-      // 2. Metadata in OP_RETURN (optional, for tracking)
-      const result = await wallet.createAction({
-        description: `Unlock article: ${article.title}`,
-        outputs: [
-          {
-            lockingScript: paymentScript.toHex(),
-            satoshis: article.price,
-            outputDescription: `Article payment to ${article.author}`,
-          },
-          {
-            lockingScript: opReturnScript,
-            satoshis: 0, // OP_RETURN outputs have zero value
-            outputDescription: `Article unlock metadata for "${article.title}"`,
-          },
-        ],
+      console.log(`Article data:`, { 
+        id: article.id, 
+        title: article.title, 
+        authorAddress: article.authorAddress,
+        authorIdentityKey: article.authorIdentityKey 
       });
+
+      console.log(`Sending direct payment to: ${article.authorAddress}`);
+
+      // Create direct payment to author's address
+      const result = await createContentPayment(
+        wallet,
+        article.authorAddress,
+        article.authorIdentityKey,
+        article.price,
+        articleId,
+        article.title
+      );
 
       const txid = result.txid;
 
@@ -181,7 +151,7 @@ function HomePage({
         body: JSON.stringify({
           txid: txid,
           walletAddress: walletAddress,
-          satoshisPaid: article.price, // Send the amount that was paid
+          satoshisPaid: article.price,
         }),
       });
 
@@ -213,7 +183,7 @@ function HomePage({
   const handleCloseModal = () => {
     setSelectedArticle(null);
   };
-
+  console.log(articles)
   return (
     <>
       {error && (
